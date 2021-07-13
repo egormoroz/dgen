@@ -1,22 +1,38 @@
 extern crate rand;
 pub mod dissector;
+pub mod pf;
 use std::fmt;
 
 use dissector::Rect;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Vec2 {
+    pub x: u16,
+    pub y: u16,
+}
 
 #[derive(Clone, Copy)]
 pub enum Cell {
     Blank,
     Wall,
     Coin,
+    Path,
 }
 
 impl Cell {
+    pub fn walkable(&self) -> bool {
+        match self {
+            Cell::Wall => false,
+            _ => true,
+        }
+    }
+
     fn as_char(&self) -> char {
         match self {
             Cell::Blank => '.',
             Cell::Wall => 'X',
             Cell::Coin => 'o',
+            Cell::Path => '-',
         }
     }
 }
@@ -66,6 +82,28 @@ impl Grid {
         // self.put_vert_line(r.left, r.top, r.bottom);
         // self.put_vert_line(r.right, r.top, r.bottom);
     }
+
+    pub fn first(&self) -> Option<Vec2> {
+        for y in 0..GRID_SIZE {
+            for x in 0..GRID_SIZE {
+                if self.data[y as usize][x as usize].walkable() {
+                    return Some(Vec2 { x, y });
+                }
+            }
+        }
+        None
+    }
+
+    pub fn last(&self) -> Option<Vec2> {
+        for y in (0..GRID_SIZE).rev() {
+            for x in (0..GRID_SIZE).rev() {
+                if self.data[y as usize][x as usize].walkable() {
+                    return Some(Vec2 { x, y });
+                }
+            }
+        }
+        None
+    }
 }
 
 impl fmt::Display for Grid {
@@ -85,7 +123,7 @@ fn main() {
     let g = dissector::Dissector::new(Rect {
         left: 1, top: 1, right: GRID_SIZE - 2, bottom: GRID_SIZE - 2,
     });
-    let mut it = g.rooms();
+    let mut it = g.rooms(15);
     if let Some(r) = it.next() {
         grid.put_box(r);
         let mut prev = r;
@@ -98,5 +136,14 @@ fn main() {
             prev = r;
         }
     }
+
+    println!("{}", grid);
+    let (f, t) = (grid.first().unwrap(), grid.last().unwrap());
+    let path = pf::pf_dijkstra(&grid.data, f, t);
+    for i in path.iter() {
+        grid.put(Cell::Path, i.x, i.y);
+    }
+    grid.put(Cell::Coin, f.x, f.y);
+    grid.put(Cell::Coin, t.x, t.y);
     println!("{}", grid);
 }

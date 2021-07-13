@@ -3,7 +3,7 @@ use crate::rand::{Rng, rngs::SmallRng, SeedableRng};
 type Range = std::ops::Range<u16>;
 
 const MIN_SIZE: u16 = 4;
-const AVG_AREA: u16 = 49;
+const AVG_AREA: u16 = 36;
 const AREA_THRESHOLD: u16 = 4;
 const SFACTOR_THRESHOLD: f32 = 1.5;
 
@@ -159,11 +159,13 @@ impl Dissector {
         n_leaves
     }
 
-    pub fn rooms(&self) -> RoomIterator {
+    pub fn rooms(&self, n: usize) -> RoomIterator {
         RoomIterator {
             nodes: &self.nodes,
             rng: self.rng.clone(),
             idx: 0,
+            cnt: 0,
+            n: n.min(self.nodes.len())
         }
     }
 }
@@ -172,18 +174,24 @@ pub struct RoomIterator<'a> {
     nodes: &'a [Node],
     idx: usize,
     rng: SmallRng,
+    cnt: usize,
+    n: usize,
 }
 
 impl<'a> Iterator for RoomIterator<'a> {
     type Item = &'a Rect;
     fn next(&mut self) -> Option<Self::Item> {
-        while self.idx < self.nodes.len() {
+        while self.cnt < self.n {
+            if self.idx >= self.nodes.len() {
+                self.idx = 0;
+            }
             let idx = self.idx;
             self.idx += 1;
             if self.nodes[idx].children.is_none() {
                 if self.rng.gen_range(1..=100) <= 25 {
                     // let bounds = self.nodes[idx].bounds;
                     // assert!(!bounds.vsplittable() && !bounds.hsplittable());
+                    self.cnt += 1;
                     return Some(&self.nodes[idx].bounds);
                 } 
             }
