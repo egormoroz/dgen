@@ -11,6 +11,19 @@ pub struct Vec2 {
     pub y: u16,
 }
 
+impl Ord for Vec2 {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.y.cmp(&other.y)
+            .then_with(|| self.x.cmp(&other.x))
+    }
+}
+
+impl PartialOrd for Vec2 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum Cell {
     Blank,
@@ -123,7 +136,7 @@ fn main() {
     let g = dissector::Dissector::new(Rect {
         left: 1, top: 1, right: GRID_SIZE - 2, bottom: GRID_SIZE - 2,
     });
-    let mut it = g.rooms(15);
+    let mut it = g.rooms(25);
     if let Some(r) = it.next() {
         grid.put_box(r);
         let mut prev = r;
@@ -137,13 +150,14 @@ fn main() {
         }
     }
 
-    println!("{}", grid);
+
     let (f, t) = (grid.first().unwrap(), grid.last().unwrap());
-    let path = pf::pf_dijkstra(&grid.data, f, t);
+    let (path, cost) = pf::pf_a_star(&grid.data, f, t);
     for i in path.iter() {
         grid.put(Cell::Path, i.x, i.y);
     }
     grid.put(Cell::Coin, f.x, f.y);
     grid.put(Cell::Coin, t.x, t.y);
     println!("{}", grid);
+    assert_eq!(cost, pf::pf_dijkstra(&grid.data, f, t).1);
 }
