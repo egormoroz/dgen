@@ -1,4 +1,5 @@
 use crate::rand::{Rng, rngs::SmallRng, SeedableRng};
+use super::util::Rect;
 
 type Range = std::ops::Range<u16>;
 
@@ -7,36 +8,7 @@ const AVG_AREA: u16 = 36;
 const AREA_THRESHOLD: u16 = 4;
 const SFACTOR_THRESHOLD: f32 = 1.5;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Rect {
-    pub left: u16,
-    pub top: u16,
-    pub right: u16,
-    pub bottom: u16,
-}
-
 impl Rect {
-    pub fn center(&self) -> (u16, u16) {
-        ((self.left + self.right) / 2, (self.top + self.bottom) / 2)
-    }
-
-    pub fn area(&self) -> u16 {
-        self.width() * self.height()
-    }
-
-    pub fn shape_factor(&self) -> f32 {
-        let (w, h) = (self.width() as f32, self.height() as f32);
-        w.max(h) / w.min(h)
-    }
-
-    pub fn width(&self) -> u16 {
-        self.right - self.left
-    }
-
-    pub fn height(&self) -> u16 {
-        self.bottom - self.top
-    }
-
     fn vsplittable(&self) -> bool {
         self.width() > MIN_SIZE * 2
     }
@@ -165,7 +137,8 @@ impl Dissector {
             rng: self.rng.clone(),
             idx: 0,
             cnt: 0,
-            n: n.min(self.nodes.len())
+            n: n.min(self.nodes.len()),
+            flag: false,
         }
     }
 }
@@ -176,6 +149,7 @@ pub struct RoomIterator<'a> {
     rng: SmallRng,
     cnt: usize,
     n: usize,
+    flag: bool,
 }
 
 impl<'a> Iterator for RoomIterator<'a> {
@@ -187,14 +161,16 @@ impl<'a> Iterator for RoomIterator<'a> {
             }
             let idx = self.idx;
             self.idx += 1;
-            if self.nodes[idx].children.is_none() {
+            if self.nodes[idx].children.is_none() && !self.flag {
                 if self.rng.gen_range(1..=100) <= 25 {
                     // let bounds = self.nodes[idx].bounds;
                     // assert!(!bounds.vsplittable() && !bounds.hsplittable());
                     self.cnt += 1;
+                    self.flag = true;
                     return Some(&self.nodes[idx].bounds);
                 } 
             }
+            self.flag = false;
         }
         None
     }
