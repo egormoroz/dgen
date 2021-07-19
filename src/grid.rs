@@ -1,7 +1,7 @@
 use super::util::*;
 use std::fmt;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Cell {
     Blank,
     Wall,
@@ -19,14 +19,14 @@ impl Cell {
         }
     }
 
-    fn as_char(&self) -> char {
+    pub fn as_char(&self) -> char {
         match self {
             Cell::Blank => '.',
-            Cell::Wall => 'X',
+            Cell::Wall => '#',
             Cell::Coin => 'o',
             Cell::DPath => '-',
-            Cell::APath => '_',
-            Cell::BothPath => '+',
+            Cell::APath => '+',
+            Cell::BothPath => '*',
         }
     }
 }
